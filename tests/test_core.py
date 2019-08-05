@@ -671,6 +671,93 @@ class TestCollectorRegistry(unittest.TestCase):
         registry.unregister(s)
         Gauge('s_count', 'help', registry=registry)
 
+    def test_reset_registry(self):
+        registry = CollectorRegistry()
+
+        gauge = Gauge('g', 'help', registry=registry)
+        gauge.inc()
+        self.assertEqual(1, registry.get_sample_value('g'))
+
+        counter = Counter('c_total', 'help', registry=registry)
+        counter.inc()
+        self.assertEqual(1, registry.get_sample_value('c_total'))
+
+        summary = Summary('s', 'help', registry=registry)
+        summary.observe(10)
+        self.assertEqual(1, registry.get_sample_value('s_count'))
+        self.assertEqual(10, registry.get_sample_value('s_sum'))
+
+        histogram = Histogram('h', 'help', registry=registry)
+        histogram.observe(2)
+        self.assertEqual(0, registry.get_sample_value('h_bucket', {'le': '1.0'}))
+        self.assertEqual(1, registry.get_sample_value('h_bucket', {'le': '2.5'}))
+        self.assertEqual(1, registry.get_sample_value('h_bucket', {'le': '5.0'}))
+        self.assertEqual(1, registry.get_sample_value('h_bucket', {'le': '+Inf'}))
+        self.assertEqual(1, registry.get_sample_value('h_count'))
+        self.assertEqual(2, registry.get_sample_value('h_sum'))
+
+
+        registry.reset()
+
+        self.assertEqual(0, registry.get_sample_value('g'))
+
+        self.assertEqual(0, registry.get_sample_value('c_total'))
+
+        self.assertEqual(0, registry.get_sample_value('s_count'))
+        self.assertEqual(0, registry.get_sample_value('s_sum'))
+
+        self.assertEqual(0, registry.get_sample_value('h_bucket', {'le': '1.0'}))
+        self.assertEqual(0, registry.get_sample_value('h_bucket', {'le': '2.5'}))
+        self.assertEqual(0, registry.get_sample_value('h_bucket', {'le': '5.0'}))
+        self.assertEqual(0, registry.get_sample_value('h_bucket', {'le': '+Inf'}))
+        self.assertEqual(0, registry.get_sample_value('h_count'))
+        self.assertEqual(0, registry.get_sample_value('h_sum'))
+
+        # --------------------------
+
+        gauge.inc()
+        gauge.inc()
+        gauge.inc()
+        gauge.dec()
+        self.assertEqual(2, registry.get_sample_value('g'))
+
+        counter.inc()
+        counter.inc()
+        counter.inc()
+        self.assertEqual(3, registry.get_sample_value('c_total'))
+
+        summary.observe(10)
+        summary.observe(5)
+        self.assertEqual(2, registry.get_sample_value('s_count'))
+        self.assertEqual(15, registry.get_sample_value('s_sum'))
+
+        histogram.observe(2)
+        histogram.observe(6)
+        histogram.observe(1)
+        self.assertEqual(1, registry.get_sample_value('h_bucket', {'le': '1.0'}))
+        self.assertEqual(2, registry.get_sample_value('h_bucket', {'le': '2.5'}))
+        self.assertEqual(2, registry.get_sample_value('h_bucket', {'le': '5.0'}))
+        self.assertEqual(3, registry.get_sample_value('h_bucket', {'le': '+Inf'}))
+        self.assertEqual(3, registry.get_sample_value('h_count'))
+        self.assertEqual(9, registry.get_sample_value('h_sum'))
+
+
+        registry.reset()
+
+        self.assertEqual(0, registry.get_sample_value('g'))
+
+        self.assertEqual(0, registry.get_sample_value('c_total'))
+
+        self.assertEqual(0, registry.get_sample_value('s_count'))
+        self.assertEqual(0, registry.get_sample_value('s_sum'))
+
+        self.assertEqual(0, registry.get_sample_value('h_bucket', {'le': '1.0'}))
+        self.assertEqual(0, registry.get_sample_value('h_bucket', {'le': '2.5'}))
+        self.assertEqual(0, registry.get_sample_value('h_bucket', {'le': '5.0'}))
+        self.assertEqual(0, registry.get_sample_value('h_bucket', {'le': '+Inf'}))
+        self.assertEqual(0, registry.get_sample_value('h_count'))
+        self.assertEqual(0, registry.get_sample_value('h_sum'))
+
     def custom_collector(self, metric_family, registry):
         class CustomCollector(object):
             def collect(self):

@@ -75,6 +75,15 @@ class CollectorRegistry(object):
             for metric in collector.collect():
                 yield metric
 
+    def reset(self):
+        """Clears value for each metric in each collector in the registry."""
+        collectors = None
+        with self._lock:
+            collectors = self._collector_to_names
+            for collector in collectors:
+                collector.reset()
+
+
     def restricted_registry(self, names):
         """Returns object that only collects some metrics.
 
