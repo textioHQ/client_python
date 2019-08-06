@@ -74,7 +74,10 @@ class MetricWrapperBase(object):
         return [metric]
 
     def reset(self):
-        if self._is_observable():
+        if self._is_parent():
+            for labels, metric in self._metrics.items():
+                metric.reset()
+        else:
             self._metric_init()
 
     def __init__(self,
