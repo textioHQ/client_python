@@ -81,7 +81,8 @@ class CollectorRegistry(object):
         with self._lock:
             collectors = self._collector_to_names
             for collector in collectors:
-                collector.reset()
+                if hasattr(collector, 'reset'):
+                    collector.reset()
 
 
     def restricted_registry(self, names):
