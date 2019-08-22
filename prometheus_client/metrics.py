@@ -73,6 +73,14 @@ class MetricWrapperBase(object):
             metric.add_sample(self._name + suffix, labels, value)
         return [metric]
 
+    def reset(self):
+        if self._is_parent():
+            with self._lock:
+                for labels, metric in self._metrics.items():
+                    metric.reset()
+        elif self._is_observable():
+            self._metric_init()
+
     def __init__(self,
                  name,
                  documentation,
